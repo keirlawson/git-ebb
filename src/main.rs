@@ -1,5 +1,5 @@
+use owo_colors::OwoColorize;
 use owo_colors::colors::*;
-use owo_colors::{Color, OwoColorize};
 
 use std::collections::HashMap;
 use std::env;
