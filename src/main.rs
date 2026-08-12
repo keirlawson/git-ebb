@@ -1,3 +1,6 @@
+use owo_colors::colors::*;
+use owo_colors::{Color, OwoColorize};
+
 use std::collections::HashMap;
 use std::env;
 use std::process::ExitCode;
@@ -95,7 +98,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     for branch in &branches {
         match prs_by_branch.get(branch) {
-            Some(title) => println!("{branch:width$}  PR: {title}"),
+            Some(title) => println!("{branch:width$}  PR: {}", title.fg::<xterm::Silver>()),
             None => println!("{branch:width$}  (no PR)"),
         }
     }
