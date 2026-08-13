@@ -2,6 +2,8 @@
 name = "git-ebb"
 version = "0.1.0"
 edition = "2024"
+description = "List git branches alongside associated PR titles"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 octocrab = "0.54.1"
