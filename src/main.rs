@@ -43,7 +43,7 @@ struct PullRequestNode {
 async fn fetch_recent_prs(
     owner: &str,
     repo: &str,
-) -> Result<HashMap<String, String>, Box<dyn std::error::Error>> {
+) -> Result<HashMap<String, Vec<String>>, Box<dyn std::error::Error>> {
     let token = env::var("EBB_TOKEN")
         .or_else(|_| env::var("GITHUB_TOKEN"))
         .map_err(|_| "Neither EBB_TOKEN nor GITHUB_TOKEN environment variables set")?;
@@ -71,9 +71,14 @@ async fn fetch_recent_prs(
 
     let response: SearchData = client.graphql(&body).await?;
 
-    let mut prs_by_branch = HashMap::new();
+    let mut prs_by_branch: HashMap<String, Vec<String>> = HashMap::new();
     for pr in response.search.nodes {
-        prs_by_branch.entry(pr.head_ref_name).or_insert(pr.title);
+        prs_by_branch
+            .entry(pr.head_ref_name)
+            .and_modify(|v| {
+                v.push(pr.title.clone());
+            })
+            .or_insert_with(|| vec![pr.title]);
     }
 
     Ok(prs_by_branch)
@@ -99,9 +104,14 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     for branch in &branches {
         match prs_by_branch.get(branch) {
-            Some(title) => println!(
+            Some(titles) => println!(
                 "{branch:width$} {}",
-                format!(" {}", title).fg::<xterm::StrikemasterPurple>()
+                titles
+                    .iter()
+                    .map(|title| format!(" {}", title))
+                    .collect::<Vec<String>>()
+                    .join(", ")
+                    .fg::<xterm::StrikemasterPurple>()
             ),
             None => println!("{branch:width$}"),
         }
