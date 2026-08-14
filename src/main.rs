@@ -99,7 +99,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     for branch in &branches {
         match prs_by_branch.get(branch) {
-            Some(title) => println!("{branch:width$} {}", title.fg::<xterm::Silver>()),
+            Some(title) => println!(
+                "{branch:width$} {}",
+                format!(" {}", title).fg::<xterm::StrikemasterPurple>()
+            ),
             None => println!("{branch:width$}"),
         }
     }
