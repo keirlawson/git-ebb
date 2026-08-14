@@ -44,8 +44,9 @@ async fn fetch_recent_prs(
     owner: &str,
     repo: &str,
 ) -> Result<HashMap<String, String>, Box<dyn std::error::Error>> {
-    let token =
-        env::var("GITHUB_TOKEN").map_err(|_| "GITHUB_TOKEN environment variable is not set")?;
+    let token = env::var("EBB_TOKEN")
+        .or_else(|_| env::var("GITHUB_TOKEN"))
+        .map_err(|_| "Neither EBB_TOKEN nor GITHUB_TOKEN environment variables set")?;
 
     let client = octocrab::Octocrab::builder()
         .personal_token(token)
