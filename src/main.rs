@@ -85,13 +85,15 @@ async fn fetch_recent_prs(
 }
 
 fn local_branches(repo: &gix::Repository) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-    let mut names = Vec::new();
+    let mut branches = Vec::new();
     for reference in repo.references()?.local_branches()? {
-        let reference = reference.map_err(|e| e.to_string())?;
-        names.push(reference.name().shorten().to_string());
+        let mut reference = reference.map_err(|e| e.to_string())?;
+        let name = reference.name().shorten().to_string();
+        let time = reference.peel_to_commit()?.committer()?.time()?.seconds;
+        branches.push((name, time));
     }
-    names.sort();
-    Ok(names)
+    branches.sort_by(|a, b| b.1.cmp(&a.1));
+    Ok(branches.into_iter().map(|(name, _)| name).collect())
 }
 
 async fn run() -> Result<(), Box<dyn std::error::Error>> {
