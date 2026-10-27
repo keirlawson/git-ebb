@@ -38,12 +38,34 @@ struct PullRequestNode {
     title: String,
     #[serde(rename = "headRefName")]
     head_ref_name: String,
+    state: PullRequestState,
+    #[serde(rename = "isDraft")]
+    is_draft: bool,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+enum PullRequestState {
+    Open,
+    Closed,
+    Merged,
+}
+
+impl PullRequestNode {
+    fn colour(&self, text: &str) -> String {
+        match (&self.state, self.is_draft) {
+            (PullRequestState::Open, true) => text.fg::<xterm::DustyGray>().to_string(),
+            (PullRequestState::Open, false) => text.fg::<xterm::PastelGreen>().to_string(),
+            (PullRequestState::Merged, _) => text.fg::<xterm::StrikemasterPurple>().to_string(),
+            (PullRequestState::Closed, _) => text.fg::<xterm::Maroon>().to_string(),
+        }
+    }
 }
 
 async fn fetch_recent_prs(
     owner: &str,
     repo: &str,
-) -> Result<HashMap<String, Vec<String>>, Box<dyn std::error::Error>> {
+) -> Result<HashMap<String, Vec<PullRequestNode>>, Box<dyn std::error::Error>> {
     let token = env::var("EBB_TOKEN")
         .or_else(|_| env::var("GITHUB_TOKEN"))
         .map_err(|_| "Neither EBB_TOKEN nor GITHUB_TOKEN environment variables set")?;
@@ -58,6 +80,8 @@ async fn fetch_recent_prs(
                 ... on PullRequest {
                     title
                     headRefName
+                    state
+                    isDraft
                 }
             }
         }
@@ -71,14 +95,12 @@ async fn fetch_recent_prs(
 
     let response: SearchData = client.graphql(&body).await?;
 
-    let mut prs_by_branch: HashMap<String, Vec<String>> = HashMap::new();
+    let mut prs_by_branch: HashMap<String, Vec<PullRequestNode>> = HashMap::new();
     for pr in response.search.nodes {
         prs_by_branch
-            .entry(pr.head_ref_name)
-            .and_modify(|v| {
-                v.push(pr.title.clone());
-            })
-            .or_insert_with(|| vec![pr.title]);
+            .entry(pr.head_ref_name.clone())
+            .or_default()
+            .push(pr);
     }
 
     Ok(prs_by_branch)
@@ -106,14 +128,12 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     for branch in &branches {
         match prs_by_branch.get(branch) {
-            Some(titles) => println!(
+            Some(prs) => println!(
                 "{branch:width$} {}",
-                titles
-                    .iter()
-                    .map(|title| format!(" {}", title))
+                prs.iter()
+                    .map(|pr| pr.colour(&format!(" {}", pr.title)))
                     .collect::<Vec<String>>()
                     .join(", ")
-                    .fg::<xterm::StrikemasterPurple>()
             ),
             None => println!("{branch:width$}"),
         }
