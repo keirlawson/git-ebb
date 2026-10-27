@@ -92,7 +92,7 @@ fn local_branches(repo: &gix::Repository) -> Result<Vec<String>, Box<dyn std::er
         let time = reference.peel_to_commit()?.committer()?.time()?.seconds;
         branches.push((name, time));
     }
-    branches.sort_by(|a, b| b.1.cmp(&a.1));
+    branches.sort_by_key(|b| std::cmp::Reverse(b.1));
     Ok(branches.into_iter().map(|(name, _)| name).collect())
 }
 
